@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>戰國生死局——《六國論》DSE金句特訓RPG</title>
+    <style>
+        :root {
+            --bg-color: #121013;
+            --card-bg: #1c1921;
+            --gold: #f5c542;
+            --gold-glow: rgba(245, 197, 66, 0.45);
+            --red-alert: #e63946;
+            --song-cyan: #38bdf8;
+            --text-light: #f8f9fa;
+            --text-gray: #a1a1aa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Serif HK", "Noto Sans TC", serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            background-image: radial-gradient(circle at 50% 15%, #2a1b24 0%, #121013 80%);
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 780px;
+            background: var(--card-bg);
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.8), 0 0 18px var(--gold-glow);
+            padding: 22px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 1px solid rgba(245, 197, 66, 0.25);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            color: var(--gold);
+            font-size: 1.65rem;
+            letter-spacing: 2px;
+        }
+
+        .sub-header {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        .stage-view {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .stage-view.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 國家選擇網格 */
+        .grid-countries {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 14px;
+        }
+        @media (max-width: 600px) {
+            .grid-countries { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .country-card {
+            background: rgba(40, 34, 46, 0.85);
+            border: 1px solid #4a3e54;
+            border-radius: 10px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .country-card:hover, .country-card:active {
+            border-color: var(--gold);
+            transform: translateY(-3px);
+            background: rgba(60, 48, 70, 0.95);
+            box-shadow: 0 4px 14px var(--gold-glow);
+        }
+
+        .country-pill {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            background: #111;
+        }
+        .pill-bribe { color: #f43f5e; border: 1px solid #f43f5e; }
+        .pill-nobribe { color: #38bdf8; border: 1px solid #38bdf8; }
+
+        .country-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+        .country-desc {
+            font-size: 0.78rem;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        /* 隱藏關卡卡片特殊樣式 */
+        .hidden-card {
+            grid-column: span 3;
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.8), rgba(15, 23, 42, 0.95));
+            border: 2px solid var(--song-cyan);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            animation: pulseGlow 2s infinite alternate;
+        }
+        @media (max-width: 600px) {
+            .hidden-card { grid-column: span 2; }
+        }
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+            to { box-shadow: 0 0 25px rgba(56, 189, 248, 0.8); }
+        }
+
+        /* 劇本敘事區 */
+        .story-box {
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 4px solid var(--gold);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            line-height: 1.75;
+            font-size: 1.02rem;
+        }
+
+        .dse-quote-tag {
+            background: rgba(245, 197, 66, 0.15);
+            color: var(--gold);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        /* 決策按鈕 */
+        .choice-btn {
+            width: 100%;
+            background: #251f2b;
+            border: 1px solid #524360;
+            color: var(--text-light);
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 0.98rem;
+            text-align: left;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            line-height: 1.45;
+        }
+        .choice-btn:hover, .choice-btn:active {
+            background: #382d42;
+            border-color: var(--gold);
+            transform: translateX(4px);
+        }
+        .choice-prefix {
+            color: var(--gold);
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        /* 全屏動畫舞台 */
+        .animation-theater {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 8, 14, 0.97);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            text-align: center;
+            z-index: 99;
+        }
+        .animation-theater.active { display: flex; }
+
+        .anim-title {
+            font-size: 1.35rem;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        .anim-desc {
+            font-size: 0.98rem;
+            line-height: 1.75;
+            max-width: 520px;
+            margin: 14px 0;
+            color: #ddd;
+        }
+
+        .theater-btn {
+            background: var(--gold);
+            color: #111;
+            font-weight: bold;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(245, 197, 66, 0.4);
+        }
+
+        .undo-btn {
+            background: #ff4d6d !important;
+            color: #fff !important;
+            box-shadow: 0 4px 15px rgba(255, 77, 109, 0.4) !important;
+        }
+
+        /* 特效動畫元素 */
+        .ancestor-ghost {
+            font-size: 4rem;
+            animation: ghostFloat 1.8s infinite ease-in-out, ghostShake 0.4s infinite;
+            filter: drop-shadow(0 0 18px #64dfdf);
+        }
+        @keyframes ghostFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        @keyframes ghostShake {
+            0%, 100% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+        }
+
+        .fire-stage {
+            position: relative;
+            width: 180px;
+            height: 150px;
+            margin: 10px auto;
+        }
+        .wood-item {
+            font-size: 2.2rem;
+            position: absolute;
+            top: 0; left: 70px;
+            animation: throwWood 1.4s infinite ease-in;
+        }
+        @keyframes throwWood {
+            0% { transform: translateY(-30px) rotate(0deg); opacity: 0; }
+            30% { opacity: 1; }
+            70% { transform: translateY(70px) rotate(180deg) scale(0.6); opacity: 1; }
+            100% { transform: translateY(85px) rotate(220deg) scale(0); opacity: 0; }
+        }
+        .flame-element {
+            width: 95px; height: 95px;
+            background: radial-gradient(circle, #fff, #ffbe0b, #fb5607, transparent);
+            border-radius: 50% 50% 20% 50%;
+            position: absolute;
+            bottom: 10px; left: 42px;
+            transform: rotate(-45deg);
+            filter: blur(2px) drop-shadow(0 0 25px #fb5607);
+            animation: flameRoar 0.4s infinite alternate;
+        }
+        @keyframes flameRoar {
+            from { transform: scale(1.6) rotate(-45deg); }
+            to { transform: scale(2.25) rotate(-42deg); filter: blur(3px) drop-shadow(0 0 45px #ff0054); }
+        }
+
+        .silver-money {
+            font-size: 3.5rem;
+            animation: moneyDrop 1.2s infinite ease-in-out;
+        }
+        @keyframes moneyDrop {
+            0% { transform: scale(0.8) translateY(-15px); opacity: 0.5; }
+            50% { transform: scale(1.1) translateY(0); opacity: 1; }
+            100% { transform: scale(0.8) translateY(15px); opacity: 0.5; }
+        }
+
+        /* 歷史診斷卡 */
+        .diagnosis-card {
+            background: rgba(28, 24, 33, 0.92);
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 10px;
+        }
+        .quote-banner {
+            background: rgba(245, 197, 66, 0.12);
+            border-left: 3px solid var(--gold);
+            padding: 12px 14px;
+            margin: 14px 0;
+            color: #ffe6a7;
+            font-size: 0.96rem;
+            line-height: 1.65;
+        }
+        .dse-memo-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(245, 197, 66, 0.5);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            margin-top: 10px;
+            color: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <header>
+        <h1>戰國生死局 · 六國論</h1>
+        <div class="sub-header">香港中五文憑試必備範文 · 沉浸式情景 RPG</div>
+    </header>
+
+    <!-- 階段 1：選國家 -->
+    <div class="stage-view active" id="view-select">
+        <p style="text-align:center; color:#ccc; font-size:0.95rem;">
+            暴秦之欲無厭，大軍壓境！請選擇你執掌的國家：
+        </p>
+        <div class="grid-countries" id="countries-grid">
+            <div class="country-card" onclick="chooseCountry('韓')">
+                <span class="country-pill pill-bribe">賂秦三國</span>
+                <div class="country-name">韓國</div>
+                <div class="country-desc">「兵不利，戰不善？」面對暴秦恐嚇，首當其衝。</div>
+            </div>
+            <div class="country-card" onclick="chooseCountry('魏')">
+                <span class="country-pill pill-bribe">賂秦三國</span>
+                <div class="country-name">魏國</div>
+                <div class="country-desc">中原沃土，先祖披荊斬棘打拼，子孫能守住嗎？</div>
+            </div>
+            <div class="country-card" onclick="chooseCountry('楚')">
+                <span class="country-pill pill-bribe">賂秦三國</span>
+                <div class="country-name">楚國</div>
+                <div class="country-desc">地方數千里，卻深陷「今日割五城，明日割十城」之泥淖。</div>
+            </div>
+            <div class="country-card" onclick="chooseCountry('齊')">
+                <span class="country-pill pill-nobribe">不賂之國</span>
+                <div class="country-name">齊國</div>
+                <div class="country-desc">偏安東方，與嬴而不助五國，真能獨善其身？</div>
+            </div>
+            <div class="country-card" onclick="chooseCountry('燕')">
+                <span class="country-pill pill-nobribe">不賂之國</span>
+                <div class="country-name">燕國</div>
+                <div class="country-desc">幽燕之境，太子丹欲以荊軻為計，是奇謀還是速禍？</div>
+            </div>
+            <div class="country-card" onclick="chooseCountry('趙')">
+                <span class="country-pill pill-nobribe">不賂之國</span>
+                <div class="country-name">趙國</div>
+                <div class="country-desc">五戰二敗而三勝，名將李牧仍在，能否用武到底？</div>
+            </div>
+            <!-- 隱藏關卡：通關一次後解鎖 -->
+            <div class="country-card hidden-card" id="song-card" style="display:none;" onclick="chooseCountry('宋')">
+                <span class="country-pill" style="color:var(--song-cyan); border:1px solid var(--song-cyan);">👑 DSE文眼·借古諷今</span>
+                <div class="country-name" style="color:var(--song-cyan);">北宋大殿（終極隱藏關卡）</div>
+                <div class="country-desc" style="color:#e0f2fe;">「以天下之大，而從六國破滅之故事？」蘇洵對當朝皇帝的終極發問！</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 階段 2：情景抉擇 -->
+    <div class="stage-view" id="view-scenario">
+        <div class="story-box" id="story-content">加載劇情中...</div>
+        <div id="choices-container"></div>
+    </div>
+
+    <!-- 階段 3：歷史診斷書 -->
+    <div class="stage-view" id="view-result">
+        <div class="diagnosis-card">
+            <h2 id="res-title" style="color:var(--gold); margin-bottom:8px;">國運終局</h2>
+            <p id="res-plain-text" style="line-height:1.7; color:#e0e0e0; margin-bottom:12px;"></p>
+            <div class="quote-banner" id="res-quote"></div>
+            <div class="dse-memo-box" id="res-dse-point"></div>
+            <button class="theater-btn" style="width:100%; border-radius:10px; margin-top:14px;" onclick="resetGame()">
+                🔄 返回各國重選（或挑戰北宋隱藏關卡）
+            </button>
+        </div>
+    </div>
+
+    <!-- 動畫大劇場（全屏浮層） -->
+    <div class="animation-theater" id="anim-theater">
+        <div id="anim-graphic"></div>
+        <div class="anim-title" id="anim-title" style="color:var(--gold);">動畫加載中</div>
+        <div class="anim-desc" id="anim-desc"></div>
+        <div style="display:flex; gap:15px; width:100%; justify-content:center;">
+            <button class="theater-btn undo-btn" id="anim-undo-btn" style="display:none;" onclick="undoChoice()">⏳ 懊悔不已，重新抉擇</button>
+            <button class="theater-btn" id="anim-btn" onclick="continueFromAnimation()">查看原典診斷書</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 內建 Web Audio 互動音效
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, type, duration) {
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e) {}
+    }
+
+    let hasPlayedOnce = false;
+    let selectedState = "";
+    let nextEndingKey = "";
+
+    // 融合 DSE 範文原典金句的題庫
+    const database = {
+        "韓": {
+            story: "👑 <strong>【韓國情景·強秦索地】</strong><br>秦軍兵臨邊境。秦使拔劍冷笑：『獻出南陽五城，大秦許你三年太平；若敢說不，即刻屠城！』滿朝群臣皆勸你：<span class='dse-quote-tag'>割地賄賂</span>，可得片刻安寧。",
+            choices: [
+                {
+                    tag: "抉擇 A（妥協求安）",
+                    text: "交出南陽五城地契。『今日割五城，明日割十城，然後得一夕安寢。』",
+                    animKey: "bribe_fire",
+                    endingKey: "han_bribe"
+                },
+                {
+                    tag: "抉擇 B（奮起不賂）",
+                    text: "嚴詞拒絕！整肅兵馬，與秦抗衡。『義不賂秦，與諸侯並力抗敵！』",
+                    animKey: "fight_alone",
+                    endingKey: "han_fight"
+                }
+            ]
+        },
+        "魏": {
+            story: "👑 <strong>【魏國危局·大梁水困】</strong><br>秦國十萬精兵圍困大梁，文官哭奏：『大王！與其城破國滅，不如割讓河東膏腴之地十座城邑！只要秦軍退兵，今夜大王便能高枕無憂！』",
+            choices: [
+                {
+                    tag: "抉擇 A（視之不甚惜）",
+                    text: "將祖先基業手奉暴秦。『子孫視之不甚惜，舉以予人，如棄草芥。』",
+                    animKey: "bribe_fire",
+                    endingKey: "wei_bribe"
+                },
+                {
+                    tag: "抉擇 B（堅守寸土）",
+                    text: "誓死不割！傳檄趙、楚共同夾擊秦軍背後。",
+                    animKey: "fight_alone",
+                    endingKey: "wei_fight"
+                }
+            ]
+        },
+        "楚": {
+            story: "👑 <strong>【楚國存亡·六百里之詐】</strong><br>秦相張儀欺騙你：『楚國若與齊國絕交，秦願獻商於六百里地。』滿朝權貴皆勸你信納。後秦軍反咬索地，你該如何決策？",
+            choices: [
+                {
+                    tag: "抉擇 A（奉之彌繁）",
+                    text: "一再妥協割地。『日削月割，以趨於亡；奉之彌繁，侵之愈急！』",
+                    animKey: "bribe_fire",
+                    endingKey: "chu_bribe"
+                },
+                {
+                    tag: "抉擇 B（合縱拒秦）",
+                    text: "看破奸計，堅定聯齊抗秦，絕不輕言割地！",
+                    animKey: "fight_alone",
+                    endingKey: "chu_fight"
+                }
+            ]
+        },
+        "齊": {
+            story: "👑 <strong>【齊國抉擇·與嬴不助】</strong><br>韓魏被暴秦圍攻，遣使痛哭求援。秦使送來珠玉萬兩許諾：『大秦與齊世為兄弟，請大王作壁上觀，勿管閒事！』",
+            choices: [
+                {
+                    tag: "抉擇 A（附秦自保）",
+                    text: "收下厚禮，獨善其身。『與嬴而不助五國，五國既喪，齊亦不免！』",
+                    animKey: "qi_swallow",
+                    endingKey: "qi_bad"
+                },
+                {
+                    tag: "抉擇 B（並力西向）",
+                    text: "拒絕秦國利誘！『齊人勿附於秦，化人與諸侯並力西向！』",
+                    animKey: "heroic_win",
+                    endingKey: "qi_good"
+                }
+            ]
+        },
+        "燕": {
+            story: "👑 <strong>【燕國絕境·易水風寒】</strong><br>秦滅韓魏，兵逼燕境！太子丹領刺客荊軻至大殿：『正面難以抗衡，唯有以樊於期首級及督亢地圖，遣刺客刺殺秦王，方能扭轉乾坤！』",
+            choices: [
+                {
+                    tag: "抉擇 A（以荊卿為計）",
+                    text: "把國運寄託於暗殺！『至丹以荊卿為計，始速禍焉！』",
+                    animKey: "yan_dagger",
+                    endingKey: "yan_bad"
+                },
+                {
+                    tag: "抉擇 B（慎思長策）",
+                    text: "拒絕孤注一擲的暗殺！深溝高壘，固守易水險要。",
+                    animKey: "heroic_win",
+                    endingKey: "yan_good"
+                }
+            ]
+        },
+        "趙": {
+            story: "👑 <strong>【趙國決戰·反間讒言】</strong><br>將軍李牧屢破秦軍，秦正面不敵，遂以重金收買奸臣郭開散佈謠言：『李牧欲謀反自立！』郭開勸你速奪兵權、處死李牧。",
+            choices: [
+                {
+                    tag: "抉擇 A（用武不終）",
+                    text: "信讒誅良將！『洎牧以讒誅，邯鄲為郡，惜其用武而不終也！』",
+                    animKey: "zhao_broken",
+                    endingKey: "zhao_bad"
+                },
+                {
+                    tag: "抉擇 B（禮待奇才）",
+                    text: "斥退奸佞，全心信賴李牧！『良將猶在，則勝負之數或未易量！』",
+                    animKey: "heroic_win",
+                    endingKey: "zhao_good"
+                }
+            ]
+        },
+        "宋": {
+            story: "👑 <strong>【終極隱藏關卡·北宋大殿】</strong><br>你化身為北宋皇帝（宋真宗/仁宗）！北方遼國、西夏大軍壓境，文官紛紛勸你：『大宋富庶，每年只需獻上銀絹數十萬（歲幣求和），便可保天下太平，何苦興兵？』",
+            choices: [
+                {
+                    tag: "抉擇 A（納歲幣求偏安）",
+                    text: "妥協求和！每年納歲幣三十萬給遼國與西夏換取安寧。",
+                    animKey: "song_tribute",
+                    endingKey: "song_fail"
+                },
+                {
+                    tag: "抉擇 B（蘇洵救國之策）",
+                    text: "以事秦之心，禮天下之奇才！停止歲幣，整軍備戰，並力禦敵！",
+                    animKey: "song_triumph",
+                    endingKey: "song_win"
+                }
+            ]
+        }
+    };
+
+    // 考點診斷書
+    const endings = {
+        "han_bribe": {
+            title: "【韓國結局：力虧身死，第一個滅亡】",
+            plain: "<strong>白話剖析：</strong>你今日割五城換得一夕安寢，秦國貪念反而被無限放大，翌年索城二十座。韓國疆土有限，割無可割，終成第一個覆亡之國！",
+            quote: "「以地事秦，猶抱薪救火，薪不盡，火不滅。」",
+            dse: "📌 <strong>DSE必考手法：</strong>【比喻論證】以「薪」喻「地」，以「火」喻「暴秦之欲」。薪柴不燒光，大火絕不熄滅，論證割地賄賂只會加速滅亡。"
+        },
+        "han_fight": {
+            title: "【韓國結局：獨木難支，受鄰國牽連】",
+            plain: "<strong>白話剖析：</strong>你雖有抗敵之志，但魏、楚等國爭相割地，資助秦國壯大。韓國失去戰略緩衝與盟友屏障，終被秦軍圍殲。",
+            quote: "「不賂者以賂者喪，蓋失強援，不能獨完。」",
+            dse: "📌 <strong>DSE必考手法：</strong>【因果分析】點明不賂之國滅亡的根本原因，是被身邊「賂秦者」割地資敵所連累。"
+        },
+        "wei_bribe": {
+            title: "【魏國結局：沃土割盡，大梁覆亡】",
+            plain: "<strong>白話剖析：</strong>先祖暴霜露斬荊棘打下的錦繡河山，被當成討好暴秦的籌碼。秦兵引黃河水淹大梁，魏國社稷化為丘墟！",
+            quote: "「思厥先祖父，暴霜露，斬荊棘，以有尺寸之地。子孫視之不甚惜，舉以予人，如棄草芥！」",
+            dse: "📌 <strong>DSE必考手法：</strong>【對比論證】先祖得地之難（尺寸之地） vs 子孫棄地之易（如棄草芥），強烈批判妥協者的不孝與短視。"
+        },
+        "wei_fight": {
+            title: "【魏國結局：孤立無援】",
+            plain: "<strong>白話剖析：</strong>魏武卒奮勇禦敵，但諸侯各懷異心不肯發兵，魏國終因孤掌難鳴而倒在秦軍鐵蹄之下。",
+            quote: "「向使三國各愛其地……則吾恐秦人食之不得下嚥也！」",
+            dse: "📌 <strong>DSE必考手法：</strong>【假設論證】反向推論「若三國不割地」，秦國斷不敢肆無忌憚。"
+        },
+        "chu_bribe": {
+            title: "【楚國結局：堂堂大國，屈辱覆滅】",
+            plain: "<strong>白話剖析：</strong>楚國自恃幅員遼闊，一再割地妥協。結果秦國野心無厭，侵吞楚國巫郡、黔中，楚懷王客死於秦，郢都化為灰燼！",
+            quote: "「暴秦之欲無厭，奉之彌繁，侵之愈急。故不戰而強弱勝負已判矣。」",
+            dse: "📌 <strong>DSE必考手法：</strong>【正反論述】奉獻越勤，侵略越急；揭示割地絕不可能換來真正和平。"
+        },
+        "chu_fight": {
+            title: "【楚國結局：英雄戰歌】",
+            plain: "<strong>白話剖析：</strong>楚國頑強抵抗，逼得秦國傾國動員六十萬大軍方能攻克。歷史證明：六國並非輸在軍事，而是輸在戰略！",
+            quote: "「六國破滅，非兵不利，戰不善，弊在賂秦。」",
+            dse: "📌 <strong>DSE必考核心：</strong>【一破一立開篇】破除「兵不利、戰不善」的傳統誤解，確立「弊在賂秦」的中心論點。"
+        },
+        "qi_bad": {
+            title: "【齊國結局：五國既滅，齊亦不免】",
+            plain: "<strong>白話剖析：</strong>齊國自以為不割地便安然無恙，坐視五國相繼滅亡。五國死絕後，秦軍回戈合圍臨淄，齊王不戰而餓死降秦！",
+            quote: "「齊人未嘗賂秦，終繼五國遷滅，何哉？與嬴而不助五國也。五國既喪，齊亦不免矣。」",
+            dse: "📌 <strong>DSE必考手法：</strong>【設問論證】自問自答剖析齊國外交失誤：討好強秦（與嬴），唇亡齒寒。"
+        },
+        "qi_good": {
+            title: "【齊國結局：合縱破秦，天下轉安】",
+            plain: "<strong>白話剖析：</strong>齊國精銳出擊，五國並力抗敵！合縱大軍叩關函谷，秦軍縮守關內，戰局徹底改寫！",
+            quote: "「齊人勿附於秦……並力西向，則吾恐秦人食之不得下嚥也！」",
+            dse: "📌 <strong>DSE必考思維：</strong>【戰略綜合分析】齊不附秦＋燕不用刺客＋趙全用良將＝六國足以制秦。"
+        },
+        "yan_bad": {
+            title: "【燕國結局：刺客速禍，薊城淪陷】",
+            plain: "<strong>白話剖析：</strong>荊軻刺秦功虧一簣，秦王暴怒發兵！原本據險可守的北方邊陲，因這場鋌而走險的暗殺而加速滅亡！",
+            quote: "「燕趙之君，始有遠略，能守其土，義不賂秦……至丹以荊卿為計，始速禍焉！」",
+            dse: "📌 <strong>DSE重點詞彙：</strong>【速】字作動詞用，意為「招致、加速」。批判燕太子丹短視弄險。"
+        },
+        "yan_good": {
+            title: "【燕國結局：深溝高壘，固若金湯】",
+            plain: "<strong>白話剖析：</strong>高築防線，收攏趙國殘部，依託易水天險固守邊塞，有效延緩了暴秦統一的進程！",
+            quote: "「處秦革滅殆盡之際，可謂智力孤危，勝敗存亡，皆在慎思長策。」",
+            dse: "📌 <strong>DSE分析重點：</strong>【客觀評價】肯定燕國「義不賂秦」之遠略，惋惜其後期決策失誤。"
+        },
+        "zhao_bad": {
+            title: "【趙國結局：自毀長城，邯鄲為郡】",
+            plain: "<strong>白話剖析：</strong>名將李牧含冤身亡，趙軍無人可擋王翦！秦軍數月內攻陷邯鄲，趙國宗廟盡毀，淪為秦國一郡！",
+            quote: "「趙嘗五戰於秦，二敗而三勝……洎牧以讒誅，邯鄲為郡，惜其用武而不終也！」",
+            dse: "📌 <strong>DSE重點詞彙：</strong>【洎】（及，到了...的時候）；【不終】（未能堅持到底）。痛惜趙王自毀長城。"
+        },
+        "zhao_good": {
+            title: "【趙國結局：名將在列，胡服騎射定北疆】",
+            plain: "<strong>白話剖析：</strong>全力信任李牧，李牧大破秦軍於宜安！趙國成為北方抗秦的堅固屏障，秦軍多年不敢正視趙境！",
+            quote: "「以事秦之心，禮天下之奇士；良將猶在，則勝負之數，當與秦相較，或未易量！」",
+            dse: "📌 <strong>DSE主旨呼應：</strong>【禮賢下士】重用奇才良將，方為保家衛國的根本之道。"
+        },
+        "song_fail": {
+            title: "【北宋結局：重蹈覆轍，又在六國下矣！】",
+            plain: "<strong>白話剖析：</strong>北宋擁有全天下的龐大資源，卻仿傚六國割地賂秦之策，年年奉送歲幣。外族胃口被徹底養肥，最終釀成靖康之難，死得比戰國六國更屈辱！",
+            quote: "「悲夫！有如此之勢，而為秦人積威之所劫，日削月割，以趨於亡。為國者無使為積威之所劫哉！」<br>「苟以天下之大，而從六國破滅之故事，是又在六國下矣！」",
+            dse: "👑 <strong>DSE最高分考點：</strong>【借古諷今】蘇洵寫史論的真正目的不是總結戰國歷史，而是諷諫北宋統治者不可屈膝於遼與西夏！"
+        },
+        "song_win": {
+            title: "【北宋結局：文振武奮，天下太平】",
+            plain: "<strong>白話剖析：</strong>你接納了蘇洵的救國良策！將奉送給外族的歲幣用於賞賜國內奇才英豪；以尊重外族的心轉而禮賢下士。北宋內政肅清、軍備大振，遼與西夏聞風喪膽！",
+            quote: "「以賂秦之地，封天下之奇才；以事秦之心，禮天下之奇士；並力西向，則吾恐秦人食之不得下嚥也！」",
+            dse: "👑 <strong>DSE政治藥方：</strong>停止歲幣＋禮賢下士＋整飭軍備＝富國強兵的根本之道。"
+        }
+    };
+
+    function chooseCountry(c) {
+        selectedState = c;
+        playBeep(420, 'sine', 0.15);
+        document.getElementById('view-select').classList.remove('active');
+        document.getElementById('view-scenario').classList.add('active');
+
+        const data = database[c];
+        document.getElementById('story-content').innerHTML = data.story;
+
+        const choiceBox = document.getElementById('choices-container');
+        choiceBox.innerHTML = '';
+        data.choices.forEach(ch => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerHTML = `<span class="choice-prefix">${ch.tag}：</span>${ch.text}`;
+            btn.onclick = () => triggerDecision(ch.animKey, ch.endingKey);
+            choiceBox.appendChild(btn);
+        });
+    }
+
+    function triggerDecision(animKey, endKey) {
+        nextEndingKey = endKey;
+        const theater = document.getElementById('anim-theater');
+        const graphic = document.getElementById('anim-graphic');
+        const title = document.getElementById('anim-title');
+        const desc = document.getElementById('anim-desc');
+        const undoBtn = document.getElementById('anim-undo-btn');
+        theater.classList.add('active');
+
+        // 預設關閉悔棋按鈕
+        undoBtn.style.display = 'none';
+
+        if (animKey === "bribe_fire") {
+            playBeep(180, 'sawtooth', 0.6);
+            title.innerHTML = "👻 先祖顯靈痛斥不孝！🔥 抱薪救火！";
+            title.style.color = "#f43f5e";
+            // 啟用悔棋按鈕，讓玩家可以重新抉擇
+            undoBtn.style.display = 'block';
+            graphic.innerHTML = `
+                <div class="ancestor-ghost">👻</div>
+                <div class="fire-stage">
+                    <div class="wood-item">🪵</div>
+                    <div class="flame-element"></div>
+                </div>
+            `;
+            desc.innerHTML = `
+                <span style="color:#64dfdf; font-weight:bold;">【先祖悲怒顯靈】：</span><br>
+                「不肖子孫！思厥先祖父，暴霜露，斬荊棘，以有尺寸之地！子孫視之不甚惜，舉以予人，如棄草芥！」<br><br>
+                <span style="color:#ffbe0b; font-weight:bold;">【抱薪救火】：</span><br>
+                以地事秦，猶抱薪救火！割地就像丟乾柴，只會讓暴秦的侵略烈火越燒越烈！
+            `;
+        } else if (animKey === "song_tribute") {
+            playBeep(160, 'sawtooth', 0.8);
+            title.innerHTML = "💰 歲幣求和！「又在六國下矣」";
+            title.style.color = "#f43f5e";
+            // 北宋割地也可以重選
+            undoBtn.style.display = 'block';
+            graphic.innerHTML = `<div class="silver-money">💸 🪙 💸</div>`;
+            desc.innerHTML = `
+                你將億萬銀兩與絹匹奉送給外族，自以為換來和平。<br>
+                殊不知北宋府庫空虛、邊防廢弛，敵人的胃口卻越來越大！<br>
+                <strong>「苟以天下之大，而從六國破滅之故事，是又在六國下矣！」</strong>
+            `;
+        } else if (animKey === "song_triumph") {
+            playBeep(520, 'sine', 0.5);
+            title.innerHTML = "🌟 禮待奇士！並力禦敵！";
+            title.style.color = "#38bdf8";
+            graphic.innerHTML = `<div style="font-size:3.5rem;">👑 🛡️ 📜</div>`;
+            desc.innerHTML = `
+                以賂秦之地，封天下之奇才；以事秦之心，禮天下之奇士；並力西向！<br>
+                朝廷上下一心，邊關重鎮兵精糧足，北方外患不敢越雷池一步！
+            `;
+        } else if (animKey === "fight_alone") {
+            playBeep(240, 'triangle', 0.4);
+            title.innerHTML = "🛡️ 獨木難支！失強援而亡";
+            title.style.color = "#38bdf8";
+            graphic.innerHTML = `<div style="font-size:3.5rem;">🏚️ ⚔️ 🛡️</div>`;
+            desc.innerHTML = `你雖英勇誓死抗爭，但周邊諸侯爭相割地降秦，使暴秦國力暴增。你的陣地因失去屏障與強援而覆亡！`;
+        } else if (animKey === "qi_swallow") {
+            playBeep(150, 'sawtooth', 0.7);
+            title.innerHTML = "☠️ 與嬴不助！黑霧吞噬臨淄";
+            title.style.color = "#a1a1aa";
+            // 齊國錯誤決策允許重選
+            undoBtn.style.display = 'block';
+            graphic.innerHTML = `<div style="font-size:3.5rem;">🏯 ➔ 💀</div>`;
+            desc.innerHTML = `五國死光後，秦軍回戈合圍臨淄！齊國無人可求援，落得國破家亡！「與嬴而不助五國，五國既喪，齊亦不免矣。」`;
+        } else if (animKey === "yan_dagger") {
+            playBeep(280, 'square', 0.5);
+            title.innerHTML = "🗡️ 刺客不行！以計速禍！";
+            title.style.color = "#f43f5e";
+            // 燕國錯誤決策允許重選
+            undoBtn.style.display = 'block';
+            graphic.innerHTML = `<div style="font-size:3.5rem;">🗡️ ❌ 🏹</div>`;
+            desc.innerHTML = `荊軻刺秦功虧一簣，暴秦鐵騎瘋狂席捲燕境！「至丹以荊卿為計，始速禍焉！」暗殺冒險反而加速了滅亡！`;
+        } else if (animKey === "zhao_broken") {
+            playBeep(130, 'sawtooth', 0.8);
+            title.innerHTML = "⚔️ 讒誅良將！自毀長城！";
+            title.style.color = "#f43f5e";
+            // 趙國錯誤決策允許重選
+            undoBtn.style.display = 'block';
+            graphic.innerHTML = `<div style="font-size:3.5rem;">🗡️ 💔 🛡️</div>`;
+            desc.innerHTML = `一代名將李牧含冤身亡，趙軍再無良將可擋王翦！「洎牧以讒誅，邯鄲為郡，惜其用武而不終也！」`;
+        } else if (animKey === "heroic_win") {
+            playBeep(520, 'sine', 0.5);
+            title.innerHTML = "🌟 諸侯並力！秦人不敢東向！";
+            title.style.color = "#f5c542";
+            graphic.innerHTML = `<div style="font-size:3.5rem;">🛡️ ⚔️ 🛡️</div>`;
+            desc.innerHTML = `不割地、重用良將、諸侯同心西向抗暴秦！「則吾恐秦人食之不得下嚥也！」天下局勢被徹底改寫！`;
+        }
+    }
+
+    // 新增「悔棋」功能，退回當前國家的決策朝堂
+    function undoChoice() {
+        playBeep(300, 'sine', 0.15);
+        document.getElementById('anim-theater').classList.remove('active');
+        // 保持在當前情景畫面，讓學生可以選另外一個選項
+    }
+
+    function continueFromAnimation() {
+        document.getElementById('anim-theater').classList.remove('active');
+        document.getElementById('view-scenario').classList.remove('active');
+        document.getElementById('view-result').classList.add('active');
+
+        // 通關一次後，不論成敗均解鎖隱藏的「北宋」關卡
+        hasPlayedOnce = true;
+        document.getElementById('song-card').style.display = 'block';
+
+        const res = endings[nextEndingKey];
+        document.getElementById('res-title').innerHTML = res.title;
+        document.getElementById('res-plain-text').innerHTML = res.plain;
+        document.getElementById('res-quote').innerHTML = `<strong>📖 原典精華句：</strong><br>${res.quote}`;
+        document.getElementById('res-dse-point').innerHTML = res.dse;
+    }
+
+    function resetGame() {
+        document.getElementById('view-result').classList.remove('active');
+        document.getElementById('view-select').classList.add('active');
+    }
+</script>
+</body>
+</html>
